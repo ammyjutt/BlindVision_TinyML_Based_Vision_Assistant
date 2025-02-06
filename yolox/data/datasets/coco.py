@@ -12,6 +12,10 @@ from ..dataloading import get_yolox_datadir
 from .datasets_wrapper import CacheDataset, cache_read_img
 
 
+#CHANGE: 
+SUBSET_CLASS_IDS = [1,2,3,4,5]
+
+
 def remove_useless_info(coco):
     """
     Remove useless info in coco dataset. COCO object is modified inplace.
@@ -64,8 +68,12 @@ class COCODataset(CacheDataset):
         remove_useless_info(self.coco)
         self.ids = self.coco.getImgIds()
         self.num_imgs = len(self.ids)
-        self.class_ids = sorted(self.coco.getCatIds())
-        self.cats = self.coco.loadCats(self.coco.getCatIds())
+        #CHANGE: Replaced following line
+        # self.class_ids = sorted(self.coco.getCatIds())
+        self.class_ids = SUBSET_CLASS_IDS
+
+        # self.cats = self.coco.loadCats(self.coco.getCatIds())
+        self.cats = self.coco.loadCats(self.class_ids)
         self._classes = tuple([c["name"] for c in self.cats])
         self.name = name
         self.img_size = img_size
@@ -95,8 +103,12 @@ class COCODataset(CacheDataset):
         height = im_ann["height"]
         anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
         annotations = self.coco.loadAnns(anno_ids)
+
+        #CHANGE: 
+        valid_objs = [obj for obj in annotations if obj["category_id"] in SUBSET_CLASS_IDS]
+
         objs = []
-        for obj in annotations:
+        for obj in valid_objs:
             x1 = np.max((0, obj["bbox"][0]))
             y1 = np.max((0, obj["bbox"][1]))
             x2 = np.min((width, x1 + np.max((0, obj["bbox"][2]))))
